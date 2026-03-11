@@ -23,7 +23,10 @@ COLORS = ["#2196F3", "#FF9800", "#4CAF50"]
 
 # Vollbenutzungsstunden used to estimate Wärmeabsatz from Netzgröße
 VOLLBENUTZUNGSSTUNDEN = 1700
+# Netzverluste
 DEFAULT_NETZVERLUSTE_PCT = 0.15
+# Umsatzsteuer factor to convert brutto → netto
+VAT_FACTOR = 1.19
 
 
 # ---------------------------------------------------------------------------
@@ -86,13 +89,14 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """Parse raw string columns to numeric types and compute Wärmeabsatz weight."""
     df = df.copy()
 
-    # Price columns: German decimal comma → float
+    # Price columns: German decimal comma → float, then convert brutto → netto (÷ 1.19)
     for col in PRICE_COLS:
         if col in df.columns:
             df[col] = (
                 df[col]
                 .str.replace(",", ".", regex=False)
                 .pipe(pd.to_numeric, errors="coerce")
+                / VAT_FACTOR
             )
 
     # Netzverluste in MWh/a: strip thousand-separators (dots), then parse
@@ -219,7 +223,7 @@ def plot_total(avg_total: pd.DataFrame) -> None:
         fontsize=13,
         pad=12,
     )
-    ax.set_ylabel("ct/kWh (brutto)", fontsize=11)
+    ax.set_ylabel("ct/kWh (netto)", fontsize=11)
     ax.set_ylim(0, max(values) * 1.2)
     ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.1f"))
     ax.spines[["top", "right"]].set_visible(False)
@@ -256,7 +260,7 @@ def plot_by_bundesland(avg_bl: pd.DataFrame, avg_total: pd.DataFrame) -> None:
         fontsize=13,
         pad=12,
     )
-    ax.set_ylabel("ct/kWh (brutto)", fontsize=11)
+    ax.set_ylabel("ct/kWh (netto)", fontsize=11)
     ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.1f"))
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
